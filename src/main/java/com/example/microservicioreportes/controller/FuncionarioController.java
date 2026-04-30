@@ -1,6 +1,7 @@
 package com.example.microservicioreportes.controller;
 
 import com.example.microservicioreportes.model.Reporte;
+import com.example.microservicioreportes.model.HistorialCambio;
 import com.example.microservicioreportes.service.FuncionarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -90,23 +91,62 @@ public class FuncionarioController {
     /**
      * PUT /api/funcionario/reports/{id}/status
      * Actualizar estado de un reporte
-     * Body: { "estado": "en_proceso" }
+     * Body: { "estado": "en_proceso", "comentario": "...", "notificarCiudadano": true }
      */
     @PutMapping("/reports/{id}/status")
     public ResponseEntity<Reporte> updateReportStatus(
             @RequestHeader("X-User-UID") String uid,
             @RequestHeader("X-User-Area") String areaNombre,
             @PathVariable Long id,
-            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, Object> body) {
         
-        String nuevoEstado = body.get("estado");
+        String nuevoEstado = (String) body.get("estado");
+        String comentario = (String) body.get("comentario");
+        Boolean notificarCiudadano = (Boolean) body.get("notificarCiudadano");
         
         if (nuevoEstado == null || nuevoEstado.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
         
-        Reporte reporte = funcionarioService.updateReportStatus(uid, areaNombre, id, nuevoEstado);
+        Reporte reporte = funcionarioService.updateReportStatus(uid, areaNombre, id, nuevoEstado, comentario, notificarCiudadano);
         return ResponseEntity.ok(reporte);
+    }
+
+    /**
+     * POST /api/funcionario/reports/{id}/comment
+     * Agregar un comentario al reporte
+     * Body: { "comentario": "...", "visibleCiudadano": true }
+     */
+    @PostMapping("/reports/{id}/comment")
+    public ResponseEntity<HistorialCambio> addComment(
+            @RequestHeader("X-User-UID") String uid,
+            @RequestHeader("X-User-Area") String areaNombre,
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        
+        String comentario = (String) body.get("comentario");
+        Boolean visibleCiudadano = (Boolean) body.get("visibleCiudadano");
+        
+        if (comentario == null || comentario.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        HistorialCambio historial = funcionarioService.addComment(uid, areaNombre, id, comentario, visibleCiudadano);
+        return ResponseEntity.ok(historial);
+    }
+
+    /**
+     * GET /api/funcionario/reports/{id}/history
+     * Obtener historial de un reporte
+     */
+    @GetMapping("/reports/{id}/history")
+    public ResponseEntity<List<HistorialCambio>> getReportHistory(
+            @RequestHeader("X-User-UID") String uid,
+            @RequestHeader("X-User-Area") String areaNombre,
+            @PathVariable Long id) {
+        
+        List<HistorialCambio> history = funcionarioService.getReportHistory(uid, areaNombre, id);
+        return ResponseEntity.ok(history);
     }
 
     /**

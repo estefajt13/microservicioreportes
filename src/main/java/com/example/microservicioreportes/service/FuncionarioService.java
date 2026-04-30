@@ -3,8 +3,10 @@ package com.example.microservicioreportes.service;
 import com.example.microservicioreportes.model.Reporte;
 import com.example.microservicioreportes.model.EstadoReporte;
 import com.example.microservicioreportes.model.Area;
+import com.example.microservicioreportes.model.HistorialCambio;
 import com.example.microservicioreportes.repository.ReporteRepository;
 import com.example.microservicioreportes.repository.AreaRepository;
+import com.example.microservicioreportes.repository.HistorialRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,9 @@ public class FuncionarioService {
 
     @Autowired
     private AreaRepository areaRepository;
+
+    @Autowired
+    private HistorialRepository historialRepository;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -103,10 +108,11 @@ public class FuncionarioService {
     }
 
     /**
-     * Actualizar el estado de un reporte
+     * Actualizar el estado de un reporte con comentario opcional
      */
     @Transactional
-    public Reporte updateReportStatus(String uidFuncionario, String areaNombre, Long reporteId, String nuevoEstado) {
+    public Reporte updateReportStatus(String uidFuncionario, String areaNombre, Long reporteId, 
+                                       String nuevoEstado, String comentario, Boolean notificarCiudadano) {
         Reporte reporte = getReportByIdAndArea(uidFuncionario, areaNombre, reporteId);
         
         try {
@@ -115,11 +121,57 @@ public class FuncionarioService {
             // Validar transiciones de estado
             validarTransicionEstado(reporte.getEstado(), estadoEnum);
             
+            // Guardar el estado anterior
+            EstadoReporte estadoAnterior = reporte.getEstado();
+            
+            // Actualizar estado
             reporte.setEstado(estadoEnum);
-            return reporteRepository.save(reporte);
+            reporte = reporteRepository.save(reporte);
+            
+            // Crear entrada en el historial
+            HistorialCambio historial = new HistorialCambio();
+            historial.setReporte(reporte);
+            historial.setUidUsuario(uidFuncionario);
+            historial.setTipo("estado");
+            historial.setDescripcion("Cambió estado de " + estadoAnterior.name() + " a " + nuevoEstado);
+            historial.setComentario(comentario);
+            historial.setVisibleCiudadano(notificarCiudadano != null && notificarCiudadano);
+            historialRepository.save(historial);
+            
+            return reporte;
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Estado inválido: " + nuevoEstado);
         }
+    }
+
+    /**
+     * Agregar un comentario al reporte (sin cambiar estado)
+     */
+    @Transactional
+    public HistorialCambio addComment(String uidFuncionario, String areaNombre, Long reporteId, 
+                                       String comentario, Boolean visibleCiudadano) {
+        Reporte reporte = getReportByIdAndArea(uidFuncionario, areaNombre, reporteId);
+        
+        HistorialCambio historial = new HistorialCambio();
+        historial.setReporte(reporte);
+        historial.setUidUsuario(uidFuncionario);
+        historial.setTipo(visibleCiudadano ? "mensaje_ciudadano" : "comentario_interno");
+        historial.setDescripcion(visibleCiudadano ? "Mensaje al ciudadano" : "Comentario interno");
+        historial.setComentario(comentario);
+        historial.setVisibleCiudadano(visibleCiudadano);
+        
+        return historialRepository.save(historial);
+    }
+
+    /**
+     * Obtener historial de un reporte
+     */
+    @Transactional(readOnly = true)
+    public List<HistorialCambio> getReportHistory(String uidFuncionario, String areaNombre, Long reporteId) {
+        // Verificar que el reporte pertenezca al área del funcionario
+        getReportByIdAndArea(uidFuncionario, areaNombre, reporteId);
+        
+        return historialRepository.findByReporteId(reporteId);
     }
 
     /**
