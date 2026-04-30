@@ -196,7 +196,7 @@ public class ReporteService {
         for (Object[] row : results) {
             String areaNombre = (String) row[0];
             long count = ((Number) row[1]).longValue();
-            double porcentaje = total > 0 ? (count * 100.0) / total : 0.0;
+            double porcentaje = total > 0 ? Math.round((count * 100.0 / total) * 100.0) / 100.0 : 0.0;
             areaReports.add(new AreaReportDTO(areaNombre, count, porcentaje));
         }
 
