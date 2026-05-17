@@ -9,6 +9,10 @@ import com.example.microservicioreportes.dto.ReportSummaryDTO.MapDataDTO;
 import com.example.microservicioreportes.model.EstadoReporte;
 import com.example.microservicioreportes.model.Reporte;
 import com.example.microservicioreportes.repository.ReporteRepository;
+import com.example.microservicioreportes.service.client.AnaliticaClient;
+import com.example.microservicioreportes.service.client.AnaliticaNuevoReporteDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,15 +27,46 @@ import java.util.Optional;
 @Service
 public class ReporteService {
 
+    private static final Logger log = LoggerFactory.getLogger(ReporteService.class);
+
     @Autowired
     private ReporteRepository repo;
+
+    @Autowired
+    private AnaliticaClient analiticaClient;
 
     // Crear reporte
     public Reporte crear(Reporte reporte) {
         reporte.setActivo(true);
         reporte.setEstado(EstadoReporte.pendiente);
         reporte.setFechaReporte(LocalDateTime.now());
-        return repo.save(reporte);
+        Reporte guardado = repo.save(reporte);
+
+        try {
+            AnaliticaNuevoReporteDTO evento = construirEventoAnalitica(guardado);
+            Long clusterId = analiticaClient.enviarNuevoReporte(evento);
+            if (clusterId != null) {
+                guardado.setClusterId(clusterId);
+                guardado = repo.save(guardado);
+            }
+            log.info("Notificado microservicio de analítica para reporte {} y asignado cluster {}", guardado.getId(), clusterId);
+        } catch (Exception e) {
+            log.warn("No se pudo notificar al microservicio de analítica para reporte {}: {}", guardado.getId(), e.getMessage());
+        }
+
+        return guardado;
+    }
+
+    private AnaliticaNuevoReporteDTO construirEventoAnalitica(Reporte reporte) {
+        AnaliticaNuevoReporteDTO dto = new AnaliticaNuevoReporteDTO();
+        dto.setIdReporte(reporte.getId());
+        dto.setIdTipoReporte(reporte.getTipoReporte().getId());
+        dto.setNombreTipoReporte(reporte.getTipoReporte().getNombre());
+        dto.setNombreArea(reporte.getTipoReporte().getArea().getNombre());
+        dto.setLatitud(reporte.getLatitud());
+        dto.setLongitud(reporte.getLongitud());
+        dto.setFechaReporte(reporte.getFechaReporte().toString());
+        return dto;
     }
 
     // Mis reportes por ciudadano

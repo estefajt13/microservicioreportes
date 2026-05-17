@@ -1,5 +1,6 @@
 package com.example.microservicioreportes.controller;
 
+import com.example.microservicioreportes.dto.ReporteDetalleDTO;
 import com.example.microservicioreportes.model.Reporte;
 import com.example.microservicioreportes.service.ReporteService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,10 +31,33 @@ public class ReporteController {
 
     // Ver detalle
     @GetMapping("/{id}")
-    public ResponseEntity<Reporte> detalle(@PathVariable Long id) {
+    public ResponseEntity<ReporteDetalleDTO> detalle(@PathVariable Long id) {
         return service.obtenerPorId(id)
+                .map(this::mapToDetalleDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    private ReporteDetalleDTO mapToDetalleDto(Reporte reporte) {
+        ReporteDetalleDTO dto = new ReporteDetalleDTO();
+        dto.setId(reporte.getId());
+        dto.setUidCiudadano(reporte.getUidCiudadano());
+        dto.setTipoReporteId(reporte.getTipoReporte() != null ? reporte.getTipoReporte().getId() : null);
+        dto.setNombreTipoReporte(reporte.getTipoReporte() != null ? reporte.getTipoReporte().getNombre() : null);
+        dto.setNombreArea(reporte.getTipoReporte() != null && reporte.getTipoReporte().getArea() != null ? reporte.getTipoReporte().getArea().getNombre() : null);
+        dto.setAsunto(reporte.getAsunto());
+        dto.setDescripcion(reporte.getDescripcion());
+        dto.setEstado(reporte.getEstado() != null ? reporte.getEstado().name() : null);
+        dto.setPrioridad(reporte.getPrioridad());
+        dto.setLatitud(reporte.getLatitud());
+        dto.setLongitud(reporte.getLongitud());
+        dto.setDireccion(reporte.getDireccion());
+        dto.setZona(reporte.getZona());
+        dto.setUidFuncionario(reporte.getUidFuncionario());
+        dto.setClusterId(reporte.getClusterId());
+        dto.setActivo(reporte.getActivo());
+        dto.setFechaReporte(reporte.getFechaReporte());
+        return dto;
     }
 
     // Editar reporte

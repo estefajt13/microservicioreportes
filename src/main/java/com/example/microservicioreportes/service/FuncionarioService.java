@@ -104,7 +104,18 @@ public class FuncionarioService {
         reporte.setUidFuncionario(uidFuncionario);
         reporte.setEstado(EstadoReporte.en_revision);
         
-        return reporteRepository.save(reporte);
+        reporte = reporteRepository.save(reporte);
+
+        HistorialCambio historial = new HistorialCambio();
+        historial.setReporte(reporte);
+        historial.setUidUsuario(uidFuncionario);
+        historial.setTipo("asignacion");
+        historial.setDescripcion("Asignado al funcionario " + uidFuncionario);
+        historial.setComentario(null);
+        historial.setVisibleCiudadano(false);
+        historialRepository.save(historial);
+
+        return reporte;
     }
 
     /**

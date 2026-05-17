@@ -33,6 +33,9 @@ public class Reporte {
     @Column(name = "uid_funcionario")
     private String uidFuncionario;
 
+    @Column(name = "cluster_id")
+    private Long clusterId;
+
     private Boolean activo = true;
 
     @Column(name = "fecha_reporte")
@@ -74,6 +77,9 @@ public class Reporte {
 
     public String getUidFuncionario() { return uidFuncionario; }
     public void setUidFuncionario(String u) { this.uidFuncionario = u; }
+
+    public Long getClusterId() { return clusterId; }
+    public void setClusterId(Long clusterId) { this.clusterId = clusterId; }
 
     public Boolean getActivo() { return activo; }
     public void setActivo(Boolean a) { this.activo = a; }
