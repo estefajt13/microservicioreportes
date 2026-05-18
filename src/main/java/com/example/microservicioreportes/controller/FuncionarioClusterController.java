@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * Endpoints para operaciones masivas sobre un cluster de reportes.
@@ -52,5 +53,34 @@ public class FuncionarioClusterController {
         Boolean notificar = body != null ? (Boolean) body.get("notificarCiudadano") : null;
         return ResponseEntity.ok(
                 clusterReportesService.closeCluster(uid, areaNombre, clusterId, comentario, notificar));
+    }
+
+    /**
+     * POST /funcionario/clusters/{clusterId}/comment
+     * Propaga un comentario a todos los reportes activos del cluster.
+     * Body: { "comentario": "...", "visibleCiudadano": true }
+     * Retorna el número de reportes afectados.
+     */
+    @PostMapping("/{clusterId}/comment")
+    public ResponseEntity<?> commentCluster(
+            @RequestHeader("X-User-UID") String uid,
+            @RequestHeader("X-User-Area") String areaNombre,
+            @PathVariable Long clusterId,
+            @RequestBody Map<String, Object> body) {
+        String comentario = (String) body.get("comentario");
+        Boolean visibleCiudadano = (Boolean) body.get("visibleCiudadano");
+
+        if (comentario == null || comentario.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("El comentario no puede estar vacío");
+        }
+
+        try {
+            int afectados = clusterReportesService.commentCluster(uid, areaNombre, clusterId, comentario, visibleCiudadano);
+            return ResponseEntity.ok(Map.of("reportesAfectados", afectados));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        }
     }
 }

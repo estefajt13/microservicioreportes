@@ -45,15 +45,26 @@ public class ClusterReportesService {
 
         int afectados = 0;
         for (Reporte r : reportes) {
+            // No tocar reportes ya resueltos
+            if (r.getEstado() == EstadoReporte.resuelto) continue;
+
+            r.setUidFuncionario(uidFuncionario);
+
             if (r.getEstado() == EstadoReporte.pendiente) {
-                r.setUidFuncionario(uidFuncionario);
+                // Los pendientes pasan a en_revision al ser asignados
                 r.setEstado(EstadoReporte.en_revision);
-                reporteRepository.save(r);
                 registrarHistorial(r, uidFuncionario, "asignacion",
                         "Asignado al funcionario " + uidFuncionario + " (via cluster " + clusterId + ")",
                         null, false);
-                afectados++;
+            } else {
+                // en_revision o en_proceso: solo se reasigna el funcionario
+                registrarHistorial(r, uidFuncionario, "asignacion",
+                        "Reasignado al funcionario " + uidFuncionario + " (via cluster " + clusterId + ")",
+                        null, false);
             }
+
+            reporteRepository.save(r);
+            afectados++;
         }
         log.info("Cluster {} asignado a {}: {} reporte(s) actualizados (de {})",
                 clusterId, uidFuncionario, afectados, reportes.size());
@@ -104,6 +115,36 @@ public class ClusterReportesService {
         String com = (comentario == null || comentario.isBlank()) ? "Cierre de cluster" : comentario;
         Boolean notif = (notificarCiudadano == null) ? Boolean.TRUE : notificarCiudadano;
         return updateClusterStatus(uidFuncionario, areaNombre, clusterId, EstadoReporte.resuelto.name(), com, notif);
+    }
+
+    /**
+     * Propaga un comentario a todos los reportes activos del cluster.
+     * Los reportes resueltos también reciben el comentario (es solo informativo,
+     * no cambia el estado). Se registra en reporte_historial con tipo
+     * "comentario_interno" o "mensaje_ciudadano" según visibleCiudadano.
+     */
+    @Transactional
+    public int commentCluster(String uidFuncionario, String areaNombre, Long clusterId,
+                              String comentario, Boolean visibleCiudadano) {
+        if (comentario == null || comentario.isBlank()) {
+            throw new IllegalArgumentException("El comentario no puede estar vacío");
+        }
+        obtenerClusterDelAreaDelFuncionario(clusterId, areaNombre);
+        List<Reporte> reportes = reporteRepository.findByClusterIdAndActivoTrue(clusterId);
+
+        boolean visible = visibleCiudadano != null && visibleCiudadano;
+        String tipo = visible ? "mensaje_ciudadano" : "comentario_interno";
+        String descripcion = visible ? "Mensaje al ciudadano" : "Comentario interno";
+
+        int afectados = 0;
+        for (Reporte r : reportes) {
+            registrarHistorial(r, uidFuncionario, tipo,
+                    descripcion + " (via cluster " + clusterId + ")",
+                    comentario, visible);
+            afectados++;
+        }
+        log.info("Comentario propagado al cluster {}: {} reporte(s) afectados", clusterId, afectados);
+        return afectados;
     }
 
     private ClusterReporte obtenerClusterDelAreaDelFuncionario(Long clusterId, String areaNombre) {
