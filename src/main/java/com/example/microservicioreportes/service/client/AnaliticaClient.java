@@ -12,7 +12,7 @@ public class AnaliticaClient {
     private final String analiticaBaseUrl;
 
     public AnaliticaClient(RestTemplate restTemplate,
-                           @Value("${analitica.service.url:http://localhost:8081}") String analiticaBaseUrl) {
+                           @Value("${analitica.service.url:https://microservicioanalitica-production.up.railway.app}") String analiticaBaseUrl) {
         this.restTemplate = restTemplate;
         this.analiticaBaseUrl = analiticaBaseUrl;
     }
