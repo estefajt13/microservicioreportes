@@ -34,6 +34,9 @@ public interface ReporteRepository extends JpaRepository<Reporte, Long> {
     // Reportes asignados a un funcionario específico
     List<Reporte> findByUidFuncionarioAndActivoTrue(String uidFuncionario);
 
+    // Reportes activos pertenecientes a un cluster específico
+    List<Reporte> findByClusterIdAndActivoTrue(Long clusterId);
+
     // Métricas por área
     @Query("SELECT r.estado, COUNT(r) FROM Reporte r WHERE r.activo = true AND r.tipoReporte.area.nombre = :nombreArea GROUP BY r.estado")
     List<Object[]> countByEstadoByArea(@Param("nombreArea") String nombreArea);
