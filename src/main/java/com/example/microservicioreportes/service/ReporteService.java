@@ -48,10 +48,12 @@ public class ReporteService {
             if (clusterId != null) {
                 guardado.setClusterId(clusterId);
                 guardado = repo.save(guardado);
+                log.info("Notificado microservicio de analítica para reporte {} y asignado cluster {}", guardado.getId(), clusterId);
+            } else {
+                log.warn("Microservicio de analítica no devolvió clusterId para reporte {}", guardado.getId());
             }
-            log.info("Notificado microservicio de analítica para reporte {} y asignado cluster {}", guardado.getId(), clusterId);
         } catch (Exception e) {
-            log.warn("No se pudo notificar al microservicio de analítica para reporte {}: {}", guardado.getId(), e.getMessage());
+            log.error("No se pudo notificar al microservicio de analítica para reporte {}: {}", guardado.getId(), e.getMessage(), e);
         }
 
         return guardado;
