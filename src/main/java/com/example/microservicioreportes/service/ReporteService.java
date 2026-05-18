@@ -8,7 +8,9 @@ import com.example.microservicioreportes.dto.ReportSummaryDTO.PorEstadoDTO;
 import com.example.microservicioreportes.dto.ReportSummaryDTO.MapDataDTO;
 import com.example.microservicioreportes.model.EstadoReporte;
 import com.example.microservicioreportes.model.Reporte;
+import com.example.microservicioreportes.model.TipoReporte;
 import com.example.microservicioreportes.repository.ReporteRepository;
+import com.example.microservicioreportes.repository.TipoReporteRepository;
 import com.example.microservicioreportes.service.client.AnaliticaClient;
 import com.example.microservicioreportes.service.client.AnaliticaNuevoReporteDTO;
 import org.slf4j.Logger;
@@ -31,6 +33,9 @@ public class ReporteService {
 
     @Autowired
     private ReporteRepository repo;
+
+    @Autowired
+    private TipoReporteRepository tipoReporteRepo;
 
     @Autowired
     private AnaliticaClient analiticaClient;
@@ -60,11 +65,21 @@ public class ReporteService {
     }
 
     private AnaliticaNuevoReporteDTO construirEventoAnalitica(Reporte reporte) {
+        // El reporte recién guardado puede tener tipoReporte con solo el id seteado
+        // (porque la app envía {"tipoReporte":{"id":X}}). Recargamos desde la BD para
+        // tener nombre y área disponibles.
+        Long idTipo = reporte.getTipoReporte() != null ? reporte.getTipoReporte().getId() : null;
+        if (idTipo == null) {
+            throw new IllegalStateException("Reporte " + reporte.getId() + " sin id_tipo, no se puede notificar a analítica");
+        }
+        TipoReporte tipo = tipoReporteRepo.findById(idTipo)
+            .orElseThrow(() -> new IllegalStateException("TipoReporte " + idTipo + " no existe"));
+
         AnaliticaNuevoReporteDTO dto = new AnaliticaNuevoReporteDTO();
         dto.setIdReporte(reporte.getId());
-        dto.setIdTipoReporte(reporte.getTipoReporte().getId());
-        dto.setNombreTipoReporte(reporte.getTipoReporte().getNombre());
-        dto.setNombreArea(reporte.getTipoReporte().getArea().getNombre());
+        dto.setIdTipoReporte(tipo.getId());
+        dto.setNombreTipoReporte(tipo.getNombre());
+        dto.setNombreArea(tipo.getArea() != null ? tipo.getArea().getNombre() : null);
         dto.setLatitud(reporte.getLatitud());
         dto.setLongitud(reporte.getLongitud());
         dto.setFechaReporte(reporte.getFechaReporte().toString());
