@@ -1,6 +1,7 @@
 package com.example.microservicioreportes.controller;
 
 import com.example.microservicioreportes.dto.ReporteDetalleDTO;
+import com.example.microservicioreportes.model.HistorialCambio;
 import com.example.microservicioreportes.model.Reporte;
 import com.example.microservicioreportes.service.ReporteService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,14 @@ public class ReporteController {
             @PathVariable String uid,
             @RequestParam(name = "limit", required = false) Integer limit) {
         return ResponseEntity.ok(service.listarPorCiudadano(uid, limit));
+    }
+
+    // Historial visible para ciudadano en un reporte específico
+    @GetMapping("/ciudadano/{uid}/reports/{id}/history")
+    public ResponseEntity<List<HistorialCambio>> historialCiudadano(
+            @PathVariable String uid,
+            @PathVariable Long id) {
+        return ResponseEntity.ok(service.obtenerHistorialVisibleParaCiudadano(uid, id));
     }
 
     // Ver detalle

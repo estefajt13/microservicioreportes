@@ -9,6 +9,7 @@ import com.example.microservicioreportes.dto.ReportSummaryDTO.MapDataDTO;
 import com.example.microservicioreportes.model.EstadoReporte;
 import com.example.microservicioreportes.model.Reporte;
 import com.example.microservicioreportes.model.TipoReporte;
+import com.example.microservicioreportes.repository.HistorialRepository;
 import com.example.microservicioreportes.repository.ReporteRepository;
 import com.example.microservicioreportes.repository.TipoReporteRepository;
 import com.example.microservicioreportes.service.client.AnaliticaClient;
@@ -37,6 +38,9 @@ public class ReporteService {
 
     @Autowired
     private ReporteRepository repo;
+
+    @Autowired
+    private HistorialRepository historialRepository;
 
     @Autowired
     private TipoReporteRepository tipoReporteRepo;
@@ -107,6 +111,14 @@ public class ReporteService {
     public Optional<Reporte> obtenerPorId(Long id) {
         return repo.findById(id)
                 .filter(r -> r.getActivo());
+    }
+
+    public List<HistorialCambio> obtenerHistorialVisibleParaCiudadano(String uidCiudadano, Long reporteId) {
+        Reporte reporte = repo.findById(reporteId)
+                .filter(r -> r.getActivo() && uidCiudadano != null && uidCiudadano.equals(r.getUidCiudadano()))
+                .orElseThrow(() -> new IllegalStateException("Reporte no encontrado o no pertenece al ciudadano"));
+
+        return historialRepository.findVisibleToCiudadano(reporte.getId());
     }
 
     // Editar reporte
