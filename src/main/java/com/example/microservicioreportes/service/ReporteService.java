@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.example.microservicioreportes.model.HistorialCambio;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -114,8 +115,12 @@ public class ReporteService {
     }
 
     public List<HistorialCambio> obtenerHistorialVisibleParaCiudadano(String uidCiudadano, Long reporteId) {
+        if (uidCiudadano == null || uidCiudadano.trim().isEmpty()) {
+            throw new IllegalArgumentException("El uid del ciudadano no puede ser nulo o vacío");
+        }
+        
         Reporte reporte = repo.findById(reporteId)
-                .filter(r -> r.getActivo() && uidCiudadano != null && uidCiudadano.equals(r.getUidCiudadano()))
+                .filter(r -> r.getActivo() && uidCiudadano.equals(r.getUidCiudadano()))
                 .orElseThrow(() -> new IllegalStateException("Reporte no encontrado o no pertenece al ciudadano"));
 
         return historialRepository.findVisibleToCiudadano(reporte.getId());
