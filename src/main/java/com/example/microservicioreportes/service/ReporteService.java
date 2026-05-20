@@ -26,6 +26,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
 @Service
 public class ReporteService {
 
@@ -88,6 +92,14 @@ public class ReporteService {
 
     // Mis reportes por ciudadano
     public List<Reporte> listarPorCiudadano(String uid) {
+        return listarPorCiudadano(uid, null);
+    }
+
+    public List<Reporte> listarPorCiudadano(String uid, Integer limit) {
+        if (limit != null && limit > 0) {
+            Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "fechaReporte"));
+            return repo.findByUidCiudadanoAndActivoTrue(uid, pageable);
+        }
         return repo.findByUidCiudadanoAndActivoTrue(uid);
     }
 

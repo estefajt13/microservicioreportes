@@ -25,8 +25,10 @@ public class ReporteController {
 
     // Mis reportes por ciudadano
     @GetMapping("/ciudadano/{uid}")
-    public ResponseEntity<List<Reporte>> listar(@PathVariable String uid) {
-        return ResponseEntity.ok(service.listarPorCiudadano(uid));
+    public ResponseEntity<List<Reporte>> listar(
+            @PathVariable String uid,
+            @RequestParam(name = "limit", required = false) Integer limit) {
+        return ResponseEntity.ok(service.listarPorCiudadano(uid, limit));
     }
 
     // Ver detalle

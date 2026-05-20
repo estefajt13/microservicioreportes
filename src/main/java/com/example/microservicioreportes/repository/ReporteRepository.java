@@ -2,6 +2,7 @@ package com.example.microservicioreportes.repository;
 
 import com.example.microservicioreportes.model.Reporte;
 import com.example.microservicioreportes.model.EstadoReporte;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +16,9 @@ public interface ReporteRepository extends JpaRepository<Reporte, Long> {
 
     // Reportes activos de un ciudadano específico
     List<Reporte> findByUidCiudadanoAndActivoTrue(String uidCiudadano);
+
+    // Reportes activos de un ciudadano específico ordenados por fecha descendente
+    List<Reporte> findByUidCiudadanoAndActivoTrue(String uidCiudadano, Pageable pageable);
 
     // Todos los reportes activos (para funcionario/admin - Sprint 2)
     List<Reporte> findByActivoTrue();
