@@ -12,7 +12,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping
-@CrossOrigin(origins = "*")
 public class HealthCheckController {
 
     /**

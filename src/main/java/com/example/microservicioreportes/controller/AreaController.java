@@ -10,7 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/areas")
-@CrossOrigin(origins = "*")
 public class AreaController {
 
     @Autowired

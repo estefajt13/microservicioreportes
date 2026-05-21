@@ -16,7 +16,6 @@ import java.util.NoSuchElementException;
  */
 @RestController
 @RequestMapping("/funcionario/clusters")
-@CrossOrigin(origins = "*")
 public class FuncionarioClusterController {
 
     @Autowired

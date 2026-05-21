@@ -21,7 +21,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/reports")
-@CrossOrigin(origins = "*")
 public class AdminReportController {
 
     @Autowired

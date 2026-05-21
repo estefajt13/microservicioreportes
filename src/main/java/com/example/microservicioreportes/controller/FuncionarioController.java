@@ -13,7 +13,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/funcionario")
-@CrossOrigin(origins = "*")
 public class FuncionarioController {
 
     @Autowired
