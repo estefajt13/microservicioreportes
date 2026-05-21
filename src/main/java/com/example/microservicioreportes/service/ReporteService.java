@@ -9,6 +9,7 @@ import com.example.microservicioreportes.dto.ReportSummaryDTO.MapDataDTO;
 import com.example.microservicioreportes.model.EstadoReporte;
 import com.example.microservicioreportes.model.Reporte;
 import com.example.microservicioreportes.model.TipoReporte;
+import com.example.microservicioreportes.repository.HistorialRepository;
 import com.example.microservicioreportes.repository.ReporteRepository;
 import com.example.microservicioreportes.repository.TipoReporteRepository;
 import com.example.microservicioreportes.service.client.AnaliticaClient;
@@ -17,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.example.microservicioreportes.model.HistorialCambio;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -26,6 +28,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
 @Service
 public class ReporteService {
 
@@ -33,6 +39,9 @@ public class ReporteService {
 
     @Autowired
     private ReporteRepository repo;
+
+    @Autowired
+    private HistorialRepository historialRepository;
 
     @Autowired
     private TipoReporteRepository tipoReporteRepo;
@@ -88,6 +97,14 @@ public class ReporteService {
 
     // Mis reportes por ciudadano
     public List<Reporte> listarPorCiudadano(String uid) {
+        return listarPorCiudadano(uid, null);
+    }
+
+    public List<Reporte> listarPorCiudadano(String uid, Integer limit) {
+        if (limit != null && limit > 0) {
+            Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "fechaReporte"));
+            return repo.findByUidCiudadanoAndActivoTrue(uid, pageable);
+        }
         return repo.findByUidCiudadanoAndActivoTrue(uid);
     }
 
@@ -95,6 +112,18 @@ public class ReporteService {
     public Optional<Reporte> obtenerPorId(Long id) {
         return repo.findById(id)
                 .filter(r -> r.getActivo());
+    }
+
+    public List<HistorialCambio> obtenerHistorialVisibleParaCiudadano(String uidCiudadano, Long reporteId) {
+        if (uidCiudadano == null || uidCiudadano.trim().isEmpty()) {
+            throw new IllegalArgumentException("El uid del ciudadano no puede ser nulo o vacío");
+        }
+        
+        Reporte reporte = repo.findById(reporteId)
+                .filter(r -> r.getActivo() && uidCiudadano.equals(r.getUidCiudadano()))
+                .orElseThrow(() -> new IllegalStateException("Reporte no encontrado o no pertenece al ciudadano"));
+
+        return historialRepository.findVisibleToCiudadano(reporte.getId());
     }
 
     // Editar reporte
