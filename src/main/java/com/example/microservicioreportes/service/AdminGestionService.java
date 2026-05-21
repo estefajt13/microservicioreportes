@@ -200,9 +200,10 @@ public class AdminGestionService {
         }
 
         String areaFilter = area == null ? "" : area.trim().toLowerCase();
+    final EstadoReporte finalEstado = estadoEnum;
 
         List<Reporte> reportes = reporteRepository.findByActivoTrue().stream()
-                .filter(r -> estadoEnum == null || r.getEstado() == estadoEnum)
+        .filter(r -> finalEstado == null || r.getEstado() == finalEstado)
                 .filter(r -> {
                     if (areaFilter.isEmpty() || "todas".equals(areaFilter)) {
                         return true;
