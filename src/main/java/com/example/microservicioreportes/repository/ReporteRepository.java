@@ -90,4 +90,41 @@ public interface ReporteRepository extends JpaRepository<Reporte, Long> {
     // Reportes creados por mes en el último año
     @Query("SELECT DATE_FORMAT(r.fechaReporte, '%Y-%m'), COUNT(r) FROM Reporte r WHERE r.activo = true AND r.fechaReporte >= :fechaDesde GROUP BY DATE_FORMAT(r.fechaReporte, '%Y-%m') ORDER BY DATE_FORMAT(r.fechaReporte, '%Y-%m')")
     List<Object[]> countByMonthLastYear(@Param("fechaDesde") LocalDateTime fechaDesde);
+
+    // ═══════════════════════════════════════════════════════════════════
+    // QUERIES NUEVAS — Para InternalReportController y Estadísticas
+    // ═══════════════════════════════════════════════════════════════════
+
+    // ─── Endpoint 2: por-area ───────────────────────────────────────────
+    // Reportes agrupados por área, ordenados DESC por cantidad
+    @Query("SELECT r.tipoReporte.area.nombre, COUNT(r) FROM Reporte r WHERE r.activo = true GROUP BY r.tipoReporte.area.nombre ORDER BY COUNT(r) DESC")
+    List<Object[]> countByAreaOrdered();
+
+    // Reportes agrupados por área y estado
+    @Query("SELECT r.tipoReporte.area.nombre, r.estado, COUNT(r) FROM Reporte r WHERE r.activo = true GROUP BY r.tipoReporte.area.nombre, r.estado ORDER BY r.tipoReporte.area.nombre")
+    List<Object[]> countByAreaAndEstado();
+
+    // ─── Endpoint 3: resueltos-por-periodo ──────────────────────────────
+    @Query("SELECT COUNT(r) FROM Reporte r WHERE r.activo = true AND r.estado = 'resuelto' AND r.fechaReporte >= :fechaDesde")
+    long countResueltosDesde(@Param("fechaDesde") LocalDateTime fechaDesde);
+
+    // ─── Endpoint 4: area-mas-activa ────────────────────────────────────
+    @Query("SELECT r.tipoReporte.area.nombre, COUNT(r) FROM Reporte r WHERE r.activo = true AND r.estado != 'resuelto' GROUP BY r.tipoReporte.area.nombre ORDER BY COUNT(r) DESC")
+    List<Object[]> findAreaMasActiva();
+
+    // ─── Endpoint 5: tipos-frecuentes ───────────────────────────────────
+    @Query("SELECT r.tipoReporte.nombre, r.tipoReporte.area.nombre, COUNT(r) FROM Reporte r WHERE r.activo = true AND r.fechaReporte >= :fechaDesde GROUP BY r.tipoReporte.nombre, r.tipoReporte.area.nombre ORDER BY COUNT(r) DESC")
+    List<Object[]> findTiposFrecuentes(@Param("fechaDesde") LocalDateTime fechaDesde, Pageable pageable);
+
+    // ─── Endpoint 6: tipos-por-area ─────────────────────────────────────
+    @Query("SELECT r.tipoReporte.nombre, COUNT(r) FROM Reporte r WHERE r.activo = true AND r.tipoReporte.area.nombre = :area GROUP BY r.tipoReporte.nombre ORDER BY COUNT(r) DESC")
+    List<Object[]> findTiposPorArea(@Param("area") String area);
+
+    // ─── Endpoint 8: abandonados ────────────────────────────────────────
+    @Query("SELECT r FROM Reporte r WHERE r.activo = true AND r.estado != 'resuelto' AND r.fechaReporte <= :fechaLimite")
+    List<Reporte> findAbandonados(@Param("fechaLimite") LocalDateTime fechaLimite);
+
+    // ─── Endpoint 9: tipo-mas-frecuente ─────────────────────────────────
+    @Query("SELECT r.tipoReporte.nombre, r.tipoReporte.area.nombre, COUNT(r) FROM Reporte r WHERE r.activo = true GROUP BY r.tipoReporte.nombre, r.tipoReporte.area.nombre ORDER BY COUNT(r) DESC")
+    List<Object[]> findTipoMasFrecuente(Pageable pageable);
 }
