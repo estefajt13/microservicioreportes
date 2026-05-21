@@ -1,8 +1,11 @@
 package com.example.microservicioreportes.service;
 
+import com.example.microservicioreportes.dto.AdminMapPointDTO;
 import com.example.microservicioreportes.model.EstadoReporte;
+import com.example.microservicioreportes.model.ClusterReporte;
 import com.example.microservicioreportes.model.HistorialCambio;
 import com.example.microservicioreportes.model.Reporte;
+import com.example.microservicioreportes.repository.ClusterReporteRepository;
 import com.example.microservicioreportes.repository.HistorialRepository;
 import com.example.microservicioreportes.repository.ReporteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,12 +14,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,6 +33,9 @@ public class AdminGestionService {
 
     @Autowired
     private HistorialRepository historialRepository;
+
+    @Autowired
+    private ClusterReporteRepository clusterRepository;
 
     @Transactional(readOnly = true)
     public List<Reporte> getReports(String estado, String fechaDesde, String fechaHasta, String area) {
@@ -177,5 +186,111 @@ public class AdminGestionService {
                     return item;
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminMapPointDTO> getMapPoints(String estado, String area) {
+        EstadoReporte estadoEnum = null;
+        if (estado != null && !estado.trim().isEmpty() && !"todos".equalsIgnoreCase(estado.trim())) {
+            try {
+                estadoEnum = EstadoReporte.valueOf(estado.trim());
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Estado inválido: " + estado);
+            }
+        }
+
+        String areaFilter = area == null ? "" : area.trim().toLowerCase();
+
+        List<Reporte> reportes = reporteRepository.findByActivoTrue().stream()
+                .filter(r -> estadoEnum == null || r.getEstado() == estadoEnum)
+                .filter(r -> {
+                    if (areaFilter.isEmpty() || "todas".equals(areaFilter)) {
+                        return true;
+                    }
+                    String nombreArea = r.getTipoReporte() != null && r.getTipoReporte().getArea() != null
+                            ? r.getTipoReporte().getArea().getNombre()
+                            : "";
+                    String areaNombre = nombreArea == null ? "" : nombreArea.toLowerCase();
+                    return areaNombre.contains(areaFilter);
+                })
+                .filter(r -> r.getLatitud() != null && r.getLongitud() != null)
+                .collect(Collectors.toList());
+
+        Map<Long, List<Reporte>> clusters = new LinkedHashMap<>();
+        List<Reporte> individuales = new ArrayList<>();
+
+        for (Reporte reporte : reportes) {
+            if (reporte.getClusterId() == null) {
+                individuales.add(reporte);
+                continue;
+            }
+
+            clusters.computeIfAbsent(reporte.getClusterId(), key -> new ArrayList<>()).add(reporte);
+        }
+
+        List<AdminMapPointDTO> points = new ArrayList<>();
+
+        for (Map.Entry<Long, List<Reporte>> entry : clusters.entrySet()) {
+            Long clusterId = entry.getKey();
+            List<Reporte> clusterReports = entry.getValue();
+            if (clusterReports.isEmpty()) {
+                continue;
+            }
+
+            ClusterReporte cluster = clusterRepository.findById(clusterId).orElse(null);
+            double[] centro = computeClusterCenter(clusterReports, cluster);
+
+            AdminMapPointDTO point = new AdminMapPointDTO();
+            point.setId("cluster-" + clusterId);
+            point.setKind("cluster");
+            point.setClusterId(clusterId);
+            point.setLabel(cluster != null && cluster.getNombreArea() != null
+                    ? cluster.getNombreArea()
+                    : "Cluster " + clusterId);
+            point.setLat(centro[0]);
+            point.setLng(centro[1]);
+            point.setTotal(clusterReports.size());
+            points.add(point);
+        }
+
+        for (Reporte reporte : individuales) {
+            AdminMapPointDTO point = new AdminMapPointDTO();
+            point.setId("report-" + reporte.getId());
+            point.setKind("report");
+            point.setClusterId(null);
+            point.setLabel(reporte.getAsunto() != null && !reporte.getAsunto().isBlank()
+                    ? reporte.getAsunto()
+                    : (reporte.getTipoReporte() != null ? reporte.getTipoReporte().getNombre() : "Reporte " + reporte.getId()));
+            point.setLat(reporte.getLatitud());
+            point.setLng(reporte.getLongitud());
+            point.setTotal(1);
+            points.add(point);
+        }
+
+        return points;
+    }
+
+    private double[] computeClusterCenter(List<Reporte> clusterReports, ClusterReporte cluster) {
+        if (cluster != null && cluster.getLatitudCentroide() != null && cluster.getLongitudCentroide() != null) {
+            return new double[]{cluster.getLatitudCentroide(), cluster.getLongitudCentroide()};
+        }
+
+        double latSum = 0.0;
+        double lngSum = 0.0;
+        int count = 0;
+        for (Reporte reporte : clusterReports) {
+            if (reporte.getLatitud() == null || reporte.getLongitud() == null) {
+                continue;
+            }
+            latSum += reporte.getLatitud();
+            lngSum += reporte.getLongitud();
+            count++;
+        }
+
+        if (count == 0) {
+            return new double[]{0.0, 0.0};
+        }
+
+        return new double[]{latSum / count, lngSum / count};
     }
 }

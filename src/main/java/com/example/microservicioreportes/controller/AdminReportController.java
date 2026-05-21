@@ -1,6 +1,7 @@
 package com.example.microservicioreportes.controller;
 
 import com.example.microservicioreportes.dto.AreaReportDTO;
+import com.example.microservicioreportes.dto.AdminMapPointDTO;
 import com.example.microservicioreportes.dto.DailyProcessDTO;
 import com.example.microservicioreportes.dto.ReportSummaryDTO;
 import com.example.microservicioreportes.model.EstadoReporte;
@@ -248,6 +249,30 @@ public class AdminReportController {
             }
 
             return ResponseEntity.ok(reports);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error interno del servidor");
+            error.put("code", "INTERNAL_SERVER_ERROR");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    /**
+     * GET /admin/reports/map-data
+     * Devuelve puntos del mapa filtrados por área y estado.
+     */
+    @GetMapping("/map-data")
+    public ResponseEntity<?> getMapData(
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String area) {
+        try {
+            List<AdminMapPointDTO> points = adminGestionService.getMapPoints(estado, area);
+            return ResponseEntity.ok(points);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            error.put("code", "INVALID_PARAMETER");
+            return ResponseEntity.badRequest().body(error);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Error interno del servidor");

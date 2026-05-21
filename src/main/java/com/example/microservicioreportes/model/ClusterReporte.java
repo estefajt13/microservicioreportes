@@ -21,6 +21,18 @@ public class ClusterReporte {
     @Column(name = "uid_funcionario")
     private String uidFuncionario;
 
+    @Column(name = "latitud_centroide")
+    private Double latitudCentroide;
+
+    @Column(name = "longitud_centroide")
+    private Double longitudCentroide;
+
+    @Column(name = "total_reportes")
+    private Integer totalReportes;
+
+    @Column(name = "ids_reportes")
+    private String idsReportes;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_cluster")
     private EstadoReporte estadoCluster;
@@ -36,6 +48,18 @@ public class ClusterReporte {
 
     public String getUidFuncionario() { return uidFuncionario; }
     public void setUidFuncionario(String uidFuncionario) { this.uidFuncionario = uidFuncionario; }
+
+    public Double getLatitudCentroide() { return latitudCentroide; }
+    public void setLatitudCentroide(Double latitudCentroide) { this.latitudCentroide = latitudCentroide; }
+
+    public Double getLongitudCentroide() { return longitudCentroide; }
+    public void setLongitudCentroide(Double longitudCentroide) { this.longitudCentroide = longitudCentroide; }
+
+    public Integer getTotalReportes() { return totalReportes; }
+    public void setTotalReportes(Integer totalReportes) { this.totalReportes = totalReportes; }
+
+    public String getIdsReportes() { return idsReportes; }
+    public void setIdsReportes(String idsReportes) { this.idsReportes = idsReportes; }
 
     public EstadoReporte getEstadoCluster() { return estadoCluster; }
     public void setEstadoCluster(EstadoReporte estadoCluster) { this.estadoCluster = estadoCluster; }
