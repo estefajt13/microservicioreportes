@@ -25,7 +25,9 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.data.domain.PageRequest;
@@ -347,5 +349,171 @@ public class ReporteService {
         }
 
         return dtos;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // MÉTODOS NUEVOS — Para InternalReportController
+    // ═══════════════════════════════════════════════════════════════════
+
+    // ─── Endpoint 1: /interno/reportes/diarios ──────────────────────────
+    public List<Map<String, Object>> getReportesDiarios(String fechaDesdeStr, String fechaHastaStr) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        LocalDateTime fechaDesde = LocalDate.parse(fechaDesdeStr, formatter).atStartOfDay();
+        LocalDateTime fechaHasta = LocalDate.parse(fechaHastaStr, formatter).atTime(23, 59, 59);
+
+        List<Object[]> rows = repo.countByDateBetween(fechaDesde, fechaHasta);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("fecha", row[0].toString());
+            item.put("total", row[1]);
+            result.add(item);
+        }
+        return result;
+    }
+
+    // ─── Endpoint 2: /interno/reportes/por-area ─────────────────────────
+    public List<Map<String, Object>> getReportesPorArea(boolean conDetalle) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (!conDetalle) {
+            List<Object[]> rows = repo.countByAreaOrdered();
+            for (Object[] row : rows) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("area", row[0]);
+                item.put("total", row[1]);
+                result.add(item);
+            }
+        } else {
+            List<Object[]> rows = repo.countByAreaAndEstado();
+            for (Object[] row : rows) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("area", row[0]);
+                item.put("estado", row[1] != null ? row[1].toString().toLowerCase() : null);
+                item.put("total", row[2]);
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
+    // ─── Endpoint 3: /interno/reportes/resueltos-por-periodo ────────────
+    public Map<String, Object> getResueltosporPeriodo(String periodo) {
+        int dias;
+        switch (periodo.toLowerCase()) {
+            case "semanal":  dias = 7;   break;
+            case "mensual":  dias = 30;  break;
+            case "anual":    dias = 365; break;
+            default:
+                throw new IllegalArgumentException("Período inválido. Use: semanal, mensual o anual");
+        }
+        LocalDateTime fechaDesde = LocalDateTime.now().minusDays(dias);
+        long total = repo.countResueltosDesde(fechaDesde);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("total", total);
+        result.put("periodo", periodo.toLowerCase());
+        return result;
+    }
+
+    // ─── Endpoint 4: /interno/reportes/area-mas-activa ──────────────────
+    public Map<String, Object> getAreaMasActiva() {
+        List<Object[]> rows = repo.findAreaMasActiva();
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (!rows.isEmpty()) {
+            Object[] top = rows.get(0);
+            result.put("area", top[0]);
+            result.put("total", top[1]);
+        } else {
+            result.put("area", null);
+            result.put("total", 0);
+        }
+        return result;
+    }
+
+    // ─── Endpoint 5: /interno/reportes/tipos-frecuentes ─────────────────
+    public List<Map<String, Object>> getTiposFrecuentes(int limite) {
+        LocalDateTime fechaDesde = LocalDateTime.now().minusDays(7);
+        Pageable pageable = PageRequest.of(0, limite);
+        List<Object[]> rows = repo.findTiposFrecuentes(fechaDesde, pageable);
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("tipo", row[0]);
+            item.put("area", row[1]);
+            item.put("total", row[2]);
+            result.add(item);
+        }
+        return result;
+    }
+
+    // ─── Endpoint 6: /interno/reportes/tipos-por-area ───────────────────
+    public List<Map<String, Object>> getTiposPorArea(String area) {
+        List<Object[]> rows = repo.findTiposPorArea(area);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("tipo", row[0]);
+            item.put("total", row[1]);
+            result.add(item);
+        }
+        return result;
+    }
+
+    // ─── Endpoint 7: /interno/reportes/tendencia-mensual ────────────────
+    public List<Map<String, Object>> getTendenciaMensual() {
+        LocalDateTime fechaDesde = LocalDateTime.now().minusMonths(6);
+        List<Object[]> rows = repo.countByMonthLastYear(fechaDesde);
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("mes", row[0].toString());
+            item.put("total", row[1]);
+            result.add(item);
+        }
+        return result;
+    }
+
+    // ─── Endpoint 8: /interno/reportes/abandonados ──────────────────────
+    public Map<String, Object> getReportesAbandonados(int dias) {
+        LocalDateTime fechaLimite = LocalDateTime.now().minusDays(dias);
+        List<Reporte> reportes = repo.findAbandonados(fechaLimite);
+
+        List<Map<String, Object>> detalle = new ArrayList<>();
+        for (Reporte r : reportes) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", r.getId());
+            item.put("asunto", r.getAsunto());
+            item.put("fechaReporte", r.getFechaReporte().toLocalDate().toString());
+            item.put("estado", r.getEstado().toString().toLowerCase());
+            item.put("area", r.getTipoReporte().getArea().getNombre());
+            detalle.add(item);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("total", reportes.size());
+        result.put("diasSinResolver", dias);
+        result.put("reportes", detalle);
+        return result;
+    }
+
+    // ─── Endpoint 9: /interno/reportes/tipo-mas-frecuente ───────────────
+    public Map<String, Object> getTipoMasFrecuente() {
+        Pageable pageable = PageRequest.of(0, 1);
+        List<Object[]> rows = repo.findTipoMasFrecuente(pageable);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (!rows.isEmpty()) {
+            Object[] top = rows.get(0);
+            result.put("tipo", top[0]);
+            result.put("area", top[1]);
+            result.put("total", top[2]);
+        } else {
+            result.put("tipo", null);
+            result.put("area", null);
+            result.put("total", 0);
+        }
+        return result;
     }
 }
