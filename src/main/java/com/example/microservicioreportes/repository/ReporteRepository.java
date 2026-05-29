@@ -87,8 +87,8 @@ public interface ReporteRepository extends JpaRepository<Reporte, Long> {
     @Query("SELECT DATE(r.fechaReporte), COUNT(r) FROM Reporte r WHERE r.activo = true AND r.fechaReporte >= :fechaDesde GROUP BY DATE(r.fechaReporte) ORDER BY DATE(r.fechaReporte)")
     List<Object[]> countByDateLastMonth(@Param("fechaDesde") LocalDateTime fechaDesde);
 
-    // Reportes creados por mes en el último año
-    @Query("SELECT DATE_FORMAT(r.fechaReporte, '%Y-%m'), COUNT(r) FROM Reporte r WHERE r.activo = true AND r.fechaReporte >= :fechaDesde GROUP BY DATE_FORMAT(r.fechaReporte, '%Y-%m') ORDER BY DATE_FORMAT(r.fechaReporte, '%Y-%m')")
+    // Reportes creados por mes en el último año (compatible con PostgreSQL)
+    @Query(value = "SELECT TO_CHAR(r.fecha_reporte, 'YYYY-MM'), COUNT(r) FROM reporte r WHERE r.activo = true AND r.fecha_reporte >= :fechaDesde GROUP BY TO_CHAR(r.fecha_reporte, 'YYYY-MM') ORDER BY TO_CHAR(r.fecha_reporte, 'YYYY-MM')", nativeQuery = true)
     List<Object[]> countByMonthLastYear(@Param("fechaDesde") LocalDateTime fechaDesde);
 
     // ═══════════════════════════════════════════════════════════════════
