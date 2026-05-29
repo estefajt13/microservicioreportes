@@ -462,17 +462,22 @@ public class ReporteService {
 
     // ─── Endpoint 7: /interno/reportes/tendencia-mensual ────────────────
     public List<Map<String, Object>> getTendenciaMensual() {
-        LocalDateTime fechaDesde = LocalDateTime.now().minusMonths(6);
-        List<Object[]> rows = repo.countByMonthLastYear(fechaDesde);
+        try {
+            LocalDateTime fechaDesde = LocalDateTime.now().minusMonths(6);
+            List<Object[]> rows = repo.countByMonthLastYear(fechaDesde);
 
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Object[] row : rows) {
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("mes", row[0].toString());
-            item.put("total", row[1]);
-            result.add(item);
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Object[] row : rows) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("mes", row[0] != null ? row[0].toString() : "desconocido");
+                item.put("total", row[1] != null ? ((Number) row[1]).longValue() : 0);
+                result.add(item);
+            }
+            return result;
+        } catch (Exception e) {
+            log.error("Error en getTendenciaMensual: {}", e.getMessage(), e);
+            throw new RuntimeException("Error al obtener tendencia mensual: " + e.getMessage(), e);
         }
-        return result;
     }
 
     // ─── Endpoint 8: /interno/reportes/abandonados ──────────────────────
