@@ -38,7 +38,7 @@ jobs:
 
       - name: Ejecutar pruebas con Maven
         env:
-          PGHOST: localhost
+          PGHOST: postgres
           PGPORT: 5432
           PGDATABASE: bugareporta_test
           PGUSER: postgres
